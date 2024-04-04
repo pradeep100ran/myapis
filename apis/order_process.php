@@ -1,0 +1,45 @@
+<?php
+require_once $_SERVER['DOCUMENT_ROOT'].'/apis/web.php';
+?>
+<?php
+$tim=time()+19800;
+$time=(date("h:i:s A d-M-Y",$tim));
+$userid=real_escape($_GET['userid']);
+$basket_id=1;
+$watchlist_id=1;
+$buy_value=$buy_quantity=$sell_value=$sell_quantity=null;
+$title_hash=real_escape($_GET['title_hash']);
+$price=abs(real_escape($_GET['price']));
+$quantity=floor(abs(real_escape($_GET['quantity'])));
+$type=real_escape($_GET['type']);
+$buy_value=$sell_value=$ltp=0.00;
+$buy_quantity=$sell_quantity=0;
+if($type=="BUY"){
+$buy_quantity=$quantity;
+$buy_value=$quantity*$price;
+}
+if($type=="SELL"){
+$sell_quantity=$quantity;
+$sell_value=$quantity*$price;
+}
+$process_output=new_order_in_orders($userid,$basket_id,$title_hash,$buy_quantity,$buy_value,$sell_quantity,$sell_value);
+$order_found=check_order_in_option_position($userid,$basket_id,$title_hash);
+if($order_found==0){
+new_order_in_open_position($userid,$basket_id,$title_hash,$buy_quantity,$buy_value,$sell_quantity,$sell_value,$ltp);
+}
+if($order_found==1){
+update_order_in_open_position($userid,$basket_id,$title_hash,$buy_quantity,$buy_value,$sell_quantity,$sell_value);
+$data=find_sqare_off_quantity($userid,$basket_id,$title_hash);
+foreach ($data as $row) {
+$buy_value=($row["buy_value"]);
+$sell_value=($row["sell_value"]);
+$square_off_quantity=($row["square_off_quantity"]);
+$time=($row["time"]);
+}
+if($square_off_quantity>0){
+new_order_in_closed_position($userid,$basket_id,$title_hash,$buy_value,$sell_value,$square_off_quantity,$time);
+}
+}
+delete_order_from_open_position($userid,$basket_id,$title_hash);
+echo(json_encode($process_output));
+?>
